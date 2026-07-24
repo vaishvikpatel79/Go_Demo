@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Go Demo</title>
+  <style>
+    :root { color-scheme: light; font-family: "Palatino Linotype", Palatino, serif; }
+    body { margin: 0; min-height: 100vh; background: linear-gradient(145deg, #f3efe6, #e4f0ea 45%, #e8eef6); color: #222; }
+    main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem; }
+    h1 { margin: 0 0 0.35rem; font-size: 2rem; }
+    p { opacity: 0.8; line-height: 1.45; }
+    .meta { font-size: 0.85rem; opacity: 0.7; margin: 1rem 0; }
+    .card { padding: 1rem; background: rgba(255,255,255,0.72); border-radius: 8px; margin-bottom: 1rem; }
+    .row { display: flex; gap: 0.5rem; }
+    input { flex: 1; padding: 0.65rem 0.8rem; border: 1px solid #9aa8a0; border-radius: 6px; font: inherit; }
+    button { padding: 0.65rem 1rem; border: 0; border-radius: 6px; background: #2f5d4a; color: #fff; font: inherit; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Go Demo</h1>
+    <p>One-page frontend for API + worker status services.</p>
+    <div class="meta" id="info">Loading…</div>
+    <div class="card" id="status">Fetching status…</div>
+    <div class="row">
+      <input id="message" placeholder="Ping message" />
+      <button id="ping">Ping worker</button>
+    </div>
+  </main>
+  <script>
+    const API = "/api";
+    async function loadInfo() {
+      const d = await (await fetch(`${API}/info`)).json();
+      document.getElementById("info").textContent =
+        `${d.name} · ${d.language} · ${d.services.join(", ")}`;
+    }
+    async function loadStatus() {
+      const d = await (await fetch(`${API}/status`)).json();
+      document.getElementById("status").textContent =
+        `message: ${d.message} · pings: ${d.pings} · updated: ${d.updated}`;
+    }
+    document.getElementById("ping").onclick = async () => {
+      const message = document.getElementById("message").value.trim();
+      await fetch(`${API}/status/ping`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      document.getElementById("message").value = "";
+      await loadStatus();
+    };
+    loadInfo();
+    loadStatus();
+  </script>
+</body>
+</html>

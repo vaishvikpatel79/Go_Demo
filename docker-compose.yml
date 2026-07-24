@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8082:80"
+    depends_on:
+      - api
+
+  api:
+    build: ./api
+    ports:
+      - "8090:8080"
+    environment:
+      WORKER_URL: http://worker:8081
+    depends_on:
+      - worker
+
+  worker:
+    build: ./worker
+    ports:
+      - "8091:8081"
