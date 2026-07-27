@@ -1,61 +1,25 @@
 variable "project_name" {
-  description = "Project name used as a prefix for resources"
+  description = "Project name used in resource naming"
   type        = string
-  default     = "fastapi-demo"
+  default     = "go-demo"
 }
 
 variable "environment" {
-  description = "Deployment environment (e.g. dev, prod)"
+  description = "Deployment environment (e.g. dev, staging, prod)"
   type        = string
   default     = "dev"
 }
 
 variable "region" {
-  description = "AWS region for resource deployment"
+  description = "AWS region to deploy resources into"
   type        = string
   default     = "us-east-1"
 }
 
-variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+variable "account_id" {
+  description = "AWS account ID used to construct ECR image URIs."
   type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "enable_dns_support" {
-  description = "Enable DNS support on the VPC"
-  type        = bool
-  default     = true
-}
-
-variable "enable_dns_hostnames" {
-  description = "Enable DNS hostnames on the VPC"
-  type        = bool
-  default     = true
-}
-
-variable "public_subnet_1_cidr" {
-  description = "CIDR block for public subnet 1"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "public_subnet_1_az" {
-  description = "Availability zone for public subnet 1"
-  type        = string
-  default     = "us-east-1a"
-}
-
-variable "public_subnet_2_cidr" {
-  description = "CIDR block for public subnet 2"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "public_subnet_2_az" {
-  description = "Availability zone for public subnet 2"
-  type        = string
-  default     = "us-east-1b"
+  default     = "220897588425"
 }
 
 variable "service_tags" {
@@ -67,53 +31,44 @@ variable "service_tags" {
 variable "service_repositories" {
   description = "Map of logical service name to container repository name."
   type        = map(string)
-  default     = {}
+  default = {
+    "go-demo-frontend-service" = "go-demo-frontend-service"
+    "go-demo-backend-service"  = "go-demo-backend-service"
+  }
 }
 
-variable "account_id" {
-  description = "AWS account ID used to construct ECR image URIs."
-  type        = string
-  default     = "220897588425"
-}
-
-variable "desired_count" {
-  description = "Desired number of tasks for the ECS service"
+variable "frontend_desired_count" {
+  description = "Desired task count for the frontend ECS service"
   type        = number
   default     = 1
 }
 
-variable "health_check_path" {
-  description = "Health check HTTP path for the target group"
-  type        = string
-  default     = "/health"
-}
-
-variable "health_check_interval" {
-  description = "Health check interval in seconds for the target group"
+variable "backend_desired_count" {
+  description = "Desired task count for the backend ECS service"
   type        = number
-  default     = 30
+  default     = 1
 }
 
-variable "health_check_healthy_threshold" {
-  description = "Healthy threshold count for the target group health check"
+variable "frontend_cpu" {
+  description = "CPU units for the frontend task"
   type        = number
-  default     = 2
+  default     = 256
 }
 
-variable "health_check_unhealthy_threshold" {
-  description = "Unhealthy threshold count for the target group health check"
+variable "frontend_memory" {
+  description = "Memory (MB) for the frontend task"
   type        = number
-  default     = 3
+  default     = 512
 }
 
-variable "health_check_port" {
-  description = "Health check port setting for the target group"
-  type        = string
-  default     = "traffic-port"
+variable "backend_cpu" {
+  description = "CPU units for the backend task"
+  type        = number
+  default     = 256
 }
 
-variable "health_check_protocol" {
-  description = "Health check protocol for the target group"
-  type        = string
-  default     = "HTTP"
+variable "backend_memory" {
+  description = "Memory (MB) for the backend task"
+  type        = number
+  default     = 512
 }
