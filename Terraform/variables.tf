@@ -1,11 +1,11 @@
 variable "project_name" {
-  description = "Project name"
+  description = "Project name used in resource naming"
   type        = string
   default     = "go-demo"
 }
 
 variable "environment" {
-  description = "Deployment environment"
+  description = "Deployment environment (e.g. dev, staging, prod)"
   type        = string
   default     = "dev"
 }
