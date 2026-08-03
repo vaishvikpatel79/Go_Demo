@@ -28,13 +28,13 @@ output "backend_task_definition_arn" {
   value       = aws_ecs_task_definition.backend_task_definition.arn
 }
 
-output "frontend_ecr_image_uri" {
-  description = "Amazon ECR image URI (with tag) for the frontend image"
+output "frontend_ecr_repository_uri" {
+  description = "Amazon ECR Repository URI for the Frontend image"
   value       = local.service_images["go-demo-frontend-service"]
 }
 
-output "backend_ecr_image_uri" {
-  description = "Amazon ECR image URI (with tag) for the backend image"
+output "backend_ecr_repository_uri" {
+  description = "Amazon ECR Repository URI for the Backend image"
   value       = local.service_images["go-demo-backend-service"]
 }
 
@@ -54,62 +54,63 @@ output "application_url" {
 }
 
 output "deployment_contract" {
+  description = "Deployment contract for downstream agents"
   value = {
     meta = {
       contract_version = "1.0"
-      cloud            = "aws"
-      runtime          = "ecs"
-      application_type = "fullstack"
-      environment      = var.environment
-      region           = var.region
-      deployment_type  = "fargate"
+      cloud = "aws"
+      runtime = "ecs"
+      application_type = "Fullstack app"
+      environment = var.environment
+      region = var.region
+      deployment_type = "FARGATE"
     }
 
     compute = {
       cluster_name = aws_ecs_cluster.go_demo_cluster.name
       service_name = null
       service_names = {
-        "go-demo-frontend-service" = aws_ecs_service.frontend_service.name
-        "go-demo-backend-service"  = aws_ecs_service.backend_service.name
+        "frontend" = aws_ecs_service.frontend_service.name
+        "backend"  = aws_ecs_service.backend_service.name
       }
-      task_family   = null
+      task_family = null
       workload_name = null
     }
 
     network = {
-      vpc_id             = aws_vpc.go_demo_vpc.id
-      subnet_ids         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+      vpc_id = aws_vpc.go_demo_vpc.id
+      subnet_ids = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
       security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
-      ingress_id         = null
+      ingress_id = null
     }
 
     routing = {
-      public_endpoint      = "http://${aws_lb.application_load_balancer.dns_name}"
-      internal_endpoint    = null
-      custom_domain        = null
+      public_endpoint = "http://${aws_lb.application_load_balancer.dns_name}"
+      internal_endpoint = null
+      custom_domain = null
       certificate_required = false
-      certificate_mode     = null
+      certificate_mode = null
     }
 
     data = {
       database_endpoint = null
-      cache_endpoint    = null
+      cache_endpoint = null
       object_store_name = null
     }
 
     security = {
       certificate_ref = null
-      secret_refs     = null
+      secret_refs = null
       role_arns = {
         ecs_task_execution_role = aws_iam_role.ecs_task_execution_role.arn
       }
     }
 
     health = {
-      frontend_path  = "/"
-      backend_path   = "/health"
+      frontend_path = "/"
+      backend_path = "/health"
       readiness_path = null
-      liveness_path  = null
+      liveness_path = null
     }
   }
 }
