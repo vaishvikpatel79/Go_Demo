@@ -1,21 +1,21 @@
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"
-  value       = aws_lb.application_load_balancer.dns_name
+  value       = aws_lb.go_demo_alb.dns_name
 }
 
 output "ecs_cluster_name" {
   description = "Name of the ECS Cluster"
-  value       = aws_ecs_cluster.go_demo_cluster.name
+  value       = aws_ecs_cluster.go_demo_ecs_cluster.name
 }
 
 output "frontend_ecs_service_name" {
   description = "Name of the Frontend ECS Service"
-  value       = aws_ecs_service.frontend_service.name
+  value       = aws_ecs_service.frontend_ecs_service.name
 }
 
 output "backend_ecs_service_name" {
   description = "Name of the Backend ECS Service"
-  value       = aws_ecs_service.backend_service.name
+  value       = aws_ecs_service.backend_ecs_service.name
 }
 
 output "frontend_task_definition_arn" {
@@ -29,37 +29,37 @@ output "backend_task_definition_arn" {
 }
 
 output "frontend_ecr_image_uri" {
-  description = "Full ECR image URI for the frontend (including tag) as constructed from vars"
-  value       = local.service_images["go-demo-frontend-service"]
+  description = "Amazon ECR image URI for the Frontend image (includes tag)"
+  value       = try(local.service_images["frontend-service"], null)
 }
 
 output "backend_ecr_image_uri" {
-  description = "Full ECR image URI for the backend (including tag) as constructed from vars"
-  value       = local.service_images["go-demo-backend-service"]
+  description = "Amazon ECR image URI for the Backend image (includes tag)"
+  value       = try(local.service_images["backend-service"], null)
 }
 
 output "frontend_target_group_arn" {
   description = "ARN of the Frontend Target Group"
-  value       = aws_lb_target_group.frontend_tg.arn
+  value       = aws_lb_target_group.go_demo_frontend_tg.arn
 }
 
 output "backend_target_group_arn" {
   description = "ARN of the Backend Target Group"
-  value       = aws_lb_target_group.backend_tg.arn
+  value       = aws_lb_target_group.go_demo_backend_tg.arn
 }
 
 output "application_url" {
   description = "Public URL of the deployed application (http://<ALB-DNS>)"
-  value       = "http://${aws_lb.application_load_balancer.dns_name}"
+  value       = "http://${aws_lb.go_demo_alb.dns_name}"
 }
 
 output "deployment_contract" {
-  description = "Canonical deployment contract for the Deployment Agent"
+  description = "Canonical deployment contract for downstream deployment agent"
   value = {
     meta = {
       contract_version = "1.0"
       cloud            = "aws"
-      runtime          = "ecs_fargate"
+      runtime          = "ecs"
       application_type = "fullstack"
       environment      = var.environment
       region           = var.region
@@ -67,25 +67,25 @@ output "deployment_contract" {
     }
 
     compute = {
-      cluster_name  = aws_ecs_cluster.go_demo_cluster.name
-      service_name  = null
+      cluster_name = aws_ecs_cluster.go_demo_ecs_cluster.name
+      service_name = null
       service_names = {
-        "go-demo-frontend-service" = aws_ecs_service.frontend_service.name
-        "go-demo-backend-service"  = aws_ecs_service.backend_service.name
+        "frontend-service" = aws_ecs_service.frontend_ecs_service.name
+        "backend-service"  = aws_ecs_service.backend_ecs_service.name
       }
-      task_family   = null
+      task_family  = null
       workload_name = null
     }
 
     network = {
-      vpc_id             = aws_vpc.go_demo_vpc.id
-      subnet_ids         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+      vpc_id            = aws_vpc.go_demo_vpc.id
+      subnet_ids        = [aws_subnet.go_demo_public_subnet_1.id, aws_subnet.go_demo_public_subnet_2.id]
       security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
-      ingress_id         = aws_lb.application_load_balancer.arn
+      ingress_id        = null
     }
 
     routing = {
-      public_endpoint       = "http://${aws_lb.application_load_balancer.dns_name}"
+      public_endpoint       = "http://${aws_lb.go_demo_alb.dns_name}"
       internal_endpoint     = null
       custom_domain         = null
       certificate_required  = false
@@ -93,9 +93,9 @@ output "deployment_contract" {
     }
 
     data = {
-      database_endpoint   = null
-      cache_endpoint      = null
-      object_store_name   = null
+      database_endpoint = null
+      cache_endpoint    = null
+      object_store_name = null
     }
 
     security = {
