@@ -81,7 +81,7 @@
 
 | Field | Value |
 |---|---|
-| Service Name | go-demo-frontend-service |
+| Service Name | frontend-service |
 | Deployment Type | ECS Fargate |
 | Desired Task Count | 1 |
 | Service Exposure | Public (via Application Load Balancer) |
@@ -115,7 +115,7 @@
 
 | Field | Value |
 |---|---|
-| Service Name | go-demo-backend-service |
+| Service Name | backend-service |
 | Deployment Type | ECS Fargate |
 | Desired Task Count | 1 |
 | Service Exposure | Public (via Application Load Balancer) |
