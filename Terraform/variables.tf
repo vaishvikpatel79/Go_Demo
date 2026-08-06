@@ -11,13 +11,13 @@ variable "environment" {
 }
 
 variable "region" {
-  description = "AWS region for resource deployment"
+  description = "AWS region to deploy into"
   type        = string
   default     = "us-east-1"
 }
 
 variable "account_id" {
-  description = "AWS account ID used to construct ECR image URIs."
+  description = "AWS account ID used to construct ECR image URIs. Provided in requirements."
   type        = string
   default     = "220897588425"
 }
@@ -67,38 +67,56 @@ variable "public_subnet_2_az" {
   default     = "us-east-1b"
 }
 
-variable "frontend_desired_count" {
-  description = "Desired task count for the frontend service"
+variable "frontend_container_port" {
+  description = "Container port for the frontend service"
   type        = number
-  default     = 1
+  default     = 80
 }
 
-variable "backend_desired_count" {
-  description = "Desired task count for the backend service"
+variable "backend_container_port" {
+  description = "Container port for the backend service"
   type        = number
-  default     = 1
+  default     = 8080
 }
 
 variable "frontend_cpu_units" {
-  description = "CPU units for frontend container"
+  description = "CPU units for the frontend container"
   type        = number
   default     = 256
 }
 
 variable "frontend_memory_mb" {
-  description = "Memory (MB) for frontend container"
+  description = "Memory (MB) for the frontend container"
   type        = number
   default     = 512
 }
 
 variable "backend_cpu_units" {
-  description = "CPU units for backend container"
+  description = "CPU units for the backend container"
   type        = number
   default     = 256
 }
 
 variable "backend_memory_mb" {
-  description = "Memory (MB) for backend container"
+  description = "Memory (MB) for the backend container"
   type        = number
   default     = 512
+}
+
+variable "frontend_desired_count" {
+  description = "Desired count for frontend ECS service"
+  type        = number
+  default     = 1
+}
+
+variable "backend_desired_count" {
+  description = "Desired count for backend ECS service"
+  type        = number
+  default     = 1
+}
+
+variable "managed_by" {
+  description = "ManagedBy tag value"
+  type        = string
+  default     = "terraform"
 }
