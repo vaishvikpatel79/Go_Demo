@@ -1,11 +1,11 @@
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"
-  value       = aws_lb.application_lb.dns_name
+  value       = aws_lb.go_demo_alb.dns_name
 }
 
 output "ecs_cluster_name" {
   description = "Name of the ECS Cluster"
-  value       = aws_ecs_cluster.go_demo_ecs_cluster.name
+  value       = aws_ecs_cluster.go_demo_cluster.name
 }
 
 output "frontend_ecs_service_name" {
@@ -20,22 +20,22 @@ output "backend_ecs_service_name" {
 
 output "frontend_task_definition_arn" {
   description = "ARN of the Frontend Task Definition"
-  value       = aws_ecs_task_definition.frontend_task_def.arn
+  value       = aws_ecs_task_definition.frontend_task_definition.arn
 }
 
 output "backend_task_definition_arn" {
   description = "ARN of the Backend Task Definition"
-  value       = aws_ecs_task_definition.backend_task_def.arn
+  value       = aws_ecs_task_definition.backend_task_definition.arn
 }
 
-output "frontend_ecr_image_uri" {
-  description = "Amazon ECR image URI (including tag) for the frontend image"
-  value       = local.service_images["frontend-service"]
+output "frontend_ecr_repository_uri" {
+  description = "Amazon ECR Repository URI for the Frontend image"
+  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["frontend-service"]}"
 }
 
-output "backend_ecr_image_uri" {
-  description = "Amazon ECR image URI (including tag) for the backend image"
-  value       = local.service_images["backend-service"]
+output "backend_ecr_repository_uri" {
+  description = "Amazon ECR Repository URI for the Backend image"
+  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["backend-service"]}"
 }
 
 output "frontend_target_group_arn" {
@@ -49,42 +49,43 @@ output "backend_target_group_arn" {
 }
 
 output "application_url" {
-  description = "Public URL of the deployed application"
-  value       = "http://${aws_lb.application_lb.dns_name}"
+  description = "Public URL of the deployed application (http://<ALB-DNS>)"
+  value       = "http://${aws_lb.go_demo_alb.dns_name}"
 }
 
 output "deployment_contract" {
+  description = "Canonical deployment contract for the deployment agent"
   value = {
     meta = {
       contract_version = "1.0"
       cloud            = "aws"
       runtime          = "ecs"
-      application_type = "fullstack"
+      application_type = "Fullstack app"
       environment      = var.environment
       region           = var.region
       deployment_type  = "fargate"
     }
 
     compute = {
-      cluster_name    = aws_ecs_cluster.go_demo_ecs_cluster.name
-      service_name    = null
-      service_names   = {
+      cluster_name  = aws_ecs_cluster.go_demo_cluster.name
+      service_name  = null
+      service_names = {
         "frontend-service" = aws_ecs_service.frontend_service.name
         "backend-service"  = aws_ecs_service.backend_service.name
       }
-      task_family     = null
-      workload_name   = null
+      task_family   = null
+      workload_name = null
     }
 
     network = {
       vpc_id             = aws_vpc.go_demo_vpc.id
       subnet_ids         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
       security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
-      ingress_id         = aws_lb.application_lb.arn
+      ingress_id         = aws_lb.go_demo_alb.arn
     }
 
     routing = {
-      public_endpoint       = "http://${aws_lb.application_lb.dns_name}"
+      public_endpoint       = aws_lb.go_demo_alb.dns_name
       internal_endpoint     = null
       custom_domain         = null
       certificate_required  = false
