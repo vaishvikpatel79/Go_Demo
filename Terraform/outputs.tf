@@ -1,6 +1,6 @@
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"
-  value       = aws_lb.application_lb.dns_name
+  value       = aws_lb.app_lb.dns_name
 }
 
 output "ecs_cluster_name" {
@@ -8,49 +8,49 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.go_demo_cluster.name
 }
 
-output "frontend_ecs_service_name" {
+output "frontend_service_name" {
   description = "Name of the Frontend ECS Service"
   value       = aws_ecs_service.frontend_service.name
 }
 
-output "backend_ecs_service_name" {
+output "backend_service_name" {
   description = "Name of the Backend ECS Service"
   value       = aws_ecs_service.backend_service.name
 }
 
 output "frontend_task_definition_arn" {
   description = "ARN of the Frontend Task Definition"
-  value       = aws_ecs_task_definition.frontend_task_definition.arn
+  value       = aws_ecs_task_definition.frontend_task.arn
 }
 
 output "backend_task_definition_arn" {
   description = "ARN of the Backend Task Definition"
-  value       = aws_ecs_task_definition.backend_task_definition.arn
+  value       = aws_ecs_task_definition.backend_task.arn
 }
 
 output "frontend_ecr_repository_uri" {
   description = "Amazon ECR Repository URI for the Frontend image"
-  value       = split(":", local.service_images["frontend-service"])[0]
+  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["frontend-service"]}"
 }
 
 output "backend_ecr_repository_uri" {
   description = "Amazon ECR Repository URI for the Backend image"
-  value       = split(":", local.service_images["backend-service"])[0]
+  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["backend-service"]}"
 }
 
 output "frontend_target_group_arn" {
   description = "ARN of the Frontend Target Group"
-  value       = aws_lb_target_group.go_demo_frontend_tg.arn
+  value       = aws_lb_target_group.frontend_tg.arn
 }
 
 output "backend_target_group_arn" {
   description = "ARN of the Backend Target Group"
-  value       = aws_lb_target_group.go_demo_backend_tg.arn
+  value       = aws_lb_target_group.backend_tg.arn
 }
 
 output "application_url" {
-  description = "Public URL of the deployed application (http://<ALB-DNS>)"
-  value       = "http://${aws_lb.application_lb.dns_name}"
+  description = "Public URL of the deployed application"
+  value       = "http://${aws_lb.app_lb.dns_name}"
 }
 
 output "deployment_contract" {
@@ -79,12 +79,12 @@ output "deployment_contract" {
     network = {
       vpc_id = aws_vpc.go_demo_vpc.id
       subnet_ids = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
-      security_group_ids = [aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id, aws_security_group.alb_sg.id]
-      ingress_id = aws_lb.application_lb.arn
+      security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
+      ingress_id = aws_lb.app_lb.id
     }
 
     routing = {
-      public_endpoint = "http://${aws_lb.application_lb.dns_name}"
+      public_endpoint = "http://${aws_lb.app_lb.dns_name}"
       internal_endpoint = null
       custom_domain = null
       certificate_required = false
@@ -106,8 +106,8 @@ output "deployment_contract" {
     }
 
     health = {
-      frontend_path = "/"
-      backend_path = "/health"
+      frontend_path = var.frontend_health_path
+      backend_path = var.backend_health_path
       readiness_path = null
       liveness_path = null
     }
