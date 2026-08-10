@@ -5,7 +5,7 @@ output "alb_dns_name" {
 
 output "ecs_cluster_name" {
   description = "Name of the ECS Cluster"
-  value       = aws_ecs_cluster.ecs_cluster.name
+  value       = aws_ecs_cluster.go_demo_cluster.name
 }
 
 output "frontend_ecs_service_name" {
@@ -20,22 +20,22 @@ output "backend_ecs_service_name" {
 
 output "frontend_task_definition_arn" {
   description = "ARN of the Frontend Task Definition"
-  value       = aws_ecs_task_definition.frontend_task_def.arn
+  value       = aws_ecs_task_definition.frontend_task.arn
 }
 
 output "backend_task_definition_arn" {
   description = "ARN of the Backend Task Definition"
-  value       = aws_ecs_task_definition.backend_task_def.arn
+  value       = aws_ecs_task_definition.backend_task.arn
 }
 
-output "frontend_ecr_repository_uri" {
-  description = "Amazon ECR Repository URI for the Frontend image (repository only, no tag)"
-  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["frontend-service"]}"
+output "frontend_ecr_image_uri" {
+  description = "Constructed ECR image URI for frontend (includes tag)"
+  value       = local.service_images["frontend-service"]
 }
 
-output "backend_ecr_repository_uri" {
-  description = "Amazon ECR Repository URI for the Backend image (repository only, no tag)"
-  value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["backend-service"]}"
+output "backend_ecr_image_uri" {
+  description = "Constructed ECR image URI for backend (includes tag)"
+  value       = local.service_images["backend-service"]
 }
 
 output "frontend_target_group_arn" {
@@ -49,7 +49,7 @@ output "backend_target_group_arn" {
 }
 
 output "application_url" {
-  description = "Public URL of the deployed application (http://<ALB-DNS>)"
+  description = "Public URL of the deployed application"
   value       = "http://${aws_lb.app_lb.dns_name}"
 }
 
@@ -57,24 +57,24 @@ output "deployment_contract" {
   description = "Canonical deployment contract for the deployment agent"
   value = {
     meta = {
-      contract_version  = "1.0"
-      cloud             = "aws"
-      runtime           = "ecs_fargate"
-      application_type  = "fullstack"
-      environment       = var.environment
-      region            = var.region
-      deployment_type   = "public"
+      contract_version = "1.0"
+      cloud            = "aws"
+      runtime          = "ecs_fargate"
+      application_type = "fullstack"
+      environment      = var.environment
+      region           = var.region
+      deployment_type  = "container"
     }
 
     compute = {
-      cluster_name   = aws_ecs_cluster.ecs_cluster.name
-      service_name   = null
-      service_names  = {
-        "frontend-service" = aws_ecs_service.frontend_service.name
-        "backend-service"  = aws_ecs_service.backend_service.name
+      cluster_name  = aws_ecs_cluster.go_demo_cluster.name
+      service_name  = null
+      service_names = {
+        frontend = aws_ecs_service.frontend_service.name
+        backend  = aws_ecs_service.backend_service.name
       }
-      task_family    = null
-      workload_name  = null
+      task_family   = null
+      workload_name = null
     }
 
     network = {
@@ -93,24 +93,24 @@ output "deployment_contract" {
     }
 
     data = {
-      database_endpoint  = null
-      cache_endpoint     = null
-      object_store_name  = null
+      database_endpoint   = null
+      cache_endpoint      = null
+      object_store_name   = null
     }
 
     security = {
       certificate_ref = null
       secret_refs     = null
-      role_arns = {
+      role_arns       = {
         ecs_task_execution_role = aws_iam_role.ecs_task_execution_role.arn
       }
     }
 
     health = {
-      frontend_path   = "/"
-      backend_path    = "/health"
-      readiness_path  = null
-      liveness_path   = null
+      frontend_path  = "/"
+      backend_path   = "/health"
+      readiness_path = null
+      liveness_path  = null
     }
   }
 }
