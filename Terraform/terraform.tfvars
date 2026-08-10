@@ -4,7 +4,6 @@ service_tags = {
 }
 
 service_repositories = {
-  "backend-service"   = "go_demo_backend-service"
-  "frontend-service"  = "go_demo_frontend-service"
+  "backend-service"   = "go-demo-backend-service"
+  "frontend-service"  = "go-demo-frontend-service"
 }
-
