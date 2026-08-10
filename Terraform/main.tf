@@ -9,12 +9,12 @@ locals {
 }
 
 resource "aws_vpc" "go_demo_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = var.dns_hostnames_enabled
+  enable_dns_support   = var.dns_resolution_enabled
 
   tags = {
-    Name       = "${var.project_name}-${var.environment}-vpc"
+    Name      = "${var.project_name}-${var.environment}-vpc"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
@@ -23,12 +23,12 @@ resource "aws_vpc" "go_demo_vpc" {
 
 resource "aws_subnet" "public_subnet_1" {
   vpc_id                  = aws_vpc.go_demo_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+  cidr_block              = var.public_subnet_1_cidr
+  availability_zone       = var.az1
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-pub-1"
+    Name        = "${var.project_name}-${var.environment}-public-subnet-1"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
@@ -37,19 +37,19 @@ resource "aws_subnet" "public_subnet_1" {
 
 resource "aws_subnet" "public_subnet_2" {
   vpc_id                  = aws_vpc.go_demo_vpc.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1b"
+  cidr_block              = var.public_subnet_2_cidr
+  availability_zone       = var.az2
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-pub-2"
+    Name        = "${var.project_name}-${var.environment}-public-subnet-2"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
   }
 }
 
-resource "aws_internet_gateway" "igw" {
+resource "aws_internet_gateway" "go_demo_igw" {
   vpc_id = aws_vpc.go_demo_vpc.id
 
   tags = {
@@ -63,6 +63,8 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.go_demo_vpc.id
 
+  route = []
+
   tags = {
     Name        = "${var.project_name}-${var.environment}-public-rt"
     Environment = var.environment
@@ -74,7 +76,7 @@ resource "aws_route_table" "public_rt" {
 resource "aws_route" "public_rt_default_route" {
   route_table_id         = aws_route_table.public_rt.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.igw.id
+  gateway_id             = aws_internet_gateway.go_demo_igw.id
 }
 
 resource "aws_route_table_association" "public_subnet_1_assoc" {
@@ -91,6 +93,9 @@ resource "aws_security_group" "alb_sg" {
   name   = "${var.project_name}-${var.environment}-alb-sg"
   vpc_id = aws_vpc.go_demo_vpc.id
 
+  ingress = []
+  egress  = []
+
   tags = {
     Name        = "${var.project_name}-${var.environment}-alb-sg"
     Environment = var.environment
@@ -103,6 +108,9 @@ resource "aws_security_group" "frontend_service_sg" {
   name   = "${var.project_name}-${var.environment}-frontend-sg"
   vpc_id = aws_vpc.go_demo_vpc.id
 
+  ingress = []
+  egress  = []
+
   tags = {
     Name        = "${var.project_name}-${var.environment}-frontend-sg"
     Environment = var.environment
@@ -114,6 +122,9 @@ resource "aws_security_group" "frontend_service_sg" {
 resource "aws_security_group" "backend_service_sg" {
   name   = "${var.project_name}-${var.environment}-backend-sg"
   vpc_id = aws_vpc.go_demo_vpc.id
+
+  ingress = []
+  egress  = []
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-backend-sg"
@@ -130,7 +141,6 @@ resource "aws_security_group_rule" "alb_ingress_http" {
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.alb_sg.id
-  description       = "Allow HTTP from anywhere to ALB"
 }
 
 resource "aws_security_group_rule" "alb_egress_all" {
@@ -140,27 +150,6 @@ resource "aws_security_group_rule" "alb_egress_all" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.alb_sg.id
-  description       = "Allow all outbound from ALB"
-}
-
-resource "aws_security_group_rule" "alb_egress_to_frontend_sg" {
-  type                     = "egress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  cidr_blocks              = ["0.0.0.0/0"]
-  security_group_id        = aws_security_group.alb_sg.id
-  description              = "ALB egress (permitted to frontend sg)"
-}
-
-resource "aws_security_group_rule" "alb_egress_to_backend_sg" {
-  type                     = "egress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  cidr_blocks              = ["0.0.0.0/0"]
-  security_group_id        = aws_security_group.alb_sg.id
-  description              = "ALB egress (permitted to backend sg)"
 }
 
 resource "aws_security_group_rule" "frontend_ingress_from_alb" {
@@ -170,7 +159,6 @@ resource "aws_security_group_rule" "frontend_ingress_from_alb" {
   protocol                 = "tcp"
   security_group_id        = aws_security_group.frontend_service_sg.id
   source_security_group_id = aws_security_group.alb_sg.id
-  description              = "Allow ALB to reach frontend tasks"
 }
 
 resource "aws_security_group_rule" "frontend_egress_all" {
@@ -180,7 +168,6 @@ resource "aws_security_group_rule" "frontend_egress_all" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.frontend_service_sg.id
-  description       = "Frontend tasks egress to anywhere"
 }
 
 resource "aws_security_group_rule" "backend_ingress_from_alb" {
@@ -190,7 +177,6 @@ resource "aws_security_group_rule" "backend_ingress_from_alb" {
   protocol                 = "tcp"
   security_group_id        = aws_security_group.backend_service_sg.id
   source_security_group_id = aws_security_group.alb_sg.id
-  description              = "Allow ALB to reach backend tasks"
 }
 
 resource "aws_security_group_rule" "backend_egress_all" {
@@ -200,102 +186,35 @@ resource "aws_security_group_rule" "backend_egress_all" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.backend_service_sg.id
-  description       = "Backend tasks egress to anywhere"
 }
 
-resource "aws_lb" "app_lb" {
-  name               = "${var.project_name}-${var.environment}-alb"
-  load_balancer_type = "application"
-  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
-  security_groups    = [aws_security_group.alb_sg.id]
-  idle_timeout       = 60
-  enable_deletion_protection = false
-  enable_cross_zone_load_balancing = true
-  internal           = false
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-alb"
-    Environment = var.environment
-    Project     = var.project_name
-    ManagedBy   = var.managed_by
-  }
-  scheme = "internet-facing"
-}
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "${var.project_name}-${var.environment}-ecs-task-execution-role"
 
-resource "aws_lb_target_group" "frontend_tg" {
-  name        = "${var.project_name}-${var.environment}-frontend-tg"
-  port        = var.frontend_container_port
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.go_demo_vpc.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    port                = "traffic-port"
-  }
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-frontend-tg"
+    Name        = "${var.project_name}-${var.environment}-ecs-task-execution-role"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
   }
 }
 
-resource "aws_lb_target_group" "backend_tg" {
-  name        = "${var.project_name}-${var.environment}-backend-tg"
-  port        = var.backend_container_port
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.go_demo_vpc.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/health"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    port                = "traffic-port"
-  }
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-backend-tg"
-    Environment = var.environment
-    Project     = var.project_name
-    ManagedBy   = var.managed_by
-  }
-}
-
-resource "aws_lb_listener" "http_listener" {
-  load_balancer_arn = aws_lb.app_lb.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend_tg.arn
-  }
-}
-
-resource "aws_lb_listener_rule" "backend_rule_api" {
-  listener_arn = aws_lb_listener.http_listener.arn
-  priority     = 1
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend_tg.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/api/*"]
-    }
-  }
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_cloudwatch_log_group" "frontend_log_group" {
@@ -320,36 +239,6 @@ resource "aws_cloudwatch_log_group" "backend_log_group" {
   }
 }
 
-data "aws_iam_policy_document" "ecs_task_assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
-    }
-
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "${var.project_name}-${var.environment}-ecs-task-exec-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-ecs-task-exec-role"
-    Environment = var.environment
-    Project     = var.project_name
-    ManagedBy   = var.managed_by
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
 resource "aws_ecs_cluster" "go_demo_cluster" {
   name = "${var.project_name}-${var.environment}-cluster"
 
@@ -361,24 +250,25 @@ resource "aws_ecs_cluster" "go_demo_cluster" {
   }
 }
 
-resource "aws_ecs_task_definition" "frontend_task" {
+resource "aws_ecs_task_definition" "frontend_task_def" {
   family                   = "${var.project_name}-${var.environment}-frontend"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = tostring(var.frontend_cpu_units)
-  memory                   = tostring(var.frontend_memory_mb)
+  cpu                      = var.frontend_cpu
+  memory                   = var.frontend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
-      name      = "frontend-service"
+      name      = "frontend"
       image     = local.service_images["frontend-service"]
-      cpu       = var.frontend_cpu_units
-      memory    = var.frontend_memory_mb
+      cpu       = tonumber(var.frontend_cpu)
+      memory    = tonumber(var.frontend_memory)
       essential = true
       portMappings = [
         {
-          containerPort = var.frontend_container_port
+          containerPort = var.frontend_port
+          hostPort      = var.frontend_port
           protocol      = "tcp"
         }
       ]
@@ -387,7 +277,7 @@ resource "aws_ecs_task_definition" "frontend_task" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.frontend_log_group.name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "frontend"
+          "awslogs-stream-prefix" = "ecs"
         }
       }
     }
@@ -401,24 +291,25 @@ resource "aws_ecs_task_definition" "frontend_task" {
   }
 }
 
-resource "aws_ecs_task_definition" "backend_task" {
+resource "aws_ecs_task_definition" "backend_task_def" {
   family                   = "${var.project_name}-${var.environment}-backend"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = tostring(var.backend_cpu_units)
-  memory                   = tostring(var.backend_memory_mb)
+  cpu                      = var.backend_cpu
+  memory                   = var.backend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
-      name      = "backend-service"
+      name      = "backend"
       image     = local.service_images["backend-service"]
-      cpu       = var.backend_cpu_units
-      memory    = var.backend_memory_mb
+      cpu       = tonumber(var.backend_cpu)
+      memory    = tonumber(var.backend_memory)
       essential = true
       portMappings = [
         {
-          containerPort = var.backend_container_port
+          containerPort = var.backend_port
+          hostPort      = var.backend_port
           protocol      = "tcp"
         }
       ]
@@ -427,7 +318,7 @@ resource "aws_ecs_task_definition" "backend_task" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.backend_log_group.name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "backend"
+          "awslogs-stream-prefix" = "ecs"
         }
       }
     }
@@ -441,27 +332,117 @@ resource "aws_ecs_task_definition" "backend_task" {
   }
 }
 
+resource "aws_lb_target_group" "frontend_tg" {
+  name        = "${var.project_name}-${var.environment}-frontend-tg"
+  port        = var.frontend_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.go_demo_vpc.id
+  target_type = "ip"
+
+  health_check {
+    path                = var.frontend_health_path
+    protocol            = "HTTP"
+    interval            = 30
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200-299"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-frontend-tg"
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = var.managed_by
+  }
+}
+
+resource "aws_lb_target_group" "backend_tg" {
+  name        = "${var.project_name}-${var.environment}-backend-tg"
+  port        = var.backend_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.go_demo_vpc.id
+  target_type = "ip"
+
+  health_check {
+    path                = var.backend_health_path
+    protocol            = "HTTP"
+    interval            = 30
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200-299"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-backend-tg"
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = var.managed_by
+  }
+}
+
+resource "aws_lb" "go_demo_alb" {
+  name               = "${var.project_name}-${var.environment}-alb"
+  load_balancer_type = "application"
+  internal           = false
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+  security_groups    = [aws_security_group.alb_sg.id]
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-alb"
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = var.managed_by
+  }
+}
+
+resource "aws_lb_listener" "http_listener" {
+  load_balancer_arn = aws_lb.go_demo_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend_tg.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_listener_rule" {
+  listener_arn = aws_lb_listener.http_listener.arn
+  priority     = 1
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+
 resource "aws_ecs_service" "frontend_service" {
-  name            = "${var.project_name}-${var.environment}-frontend-svc"
+  name            = "${var.project_name}-${var.environment}-frontend-service"
   cluster         = aws_ecs_cluster.go_demo_cluster.id
-  task_definition = aws_ecs_task_definition.frontend_task.arn
+  task_definition = aws_ecs_task_definition.frontend_task_def.arn
   desired_count   = var.frontend_desired_count
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
     security_groups = [aws_security_group.frontend_service_sg.id]
-    assign_public_ip = "ENABLED"
+    assign_public_ip = true
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend_tg.arn
-    container_name   = "frontend-service"
-    container_port   = var.frontend_container_port
+    container_name   = "frontend"
+    container_port   = var.frontend_port
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-frontend-svc"
+    Name        = "${var.project_name}-${var.environment}-frontend-service"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
@@ -469,26 +450,26 @@ resource "aws_ecs_service" "frontend_service" {
 }
 
 resource "aws_ecs_service" "backend_service" {
-  name            = "${var.project_name}-${var.environment}-backend-svc"
+  name            = "${var.project_name}-${var.environment}-backend-service"
   cluster         = aws_ecs_cluster.go_demo_cluster.id
-  task_definition = aws_ecs_task_definition.backend_task.arn
+  task_definition = aws_ecs_task_definition.backend_task_def.arn
   desired_count   = var.backend_desired_count
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
     security_groups = [aws_security_group.backend_service_sg.id]
-    assign_public_ip = "ENABLED"
+    assign_public_ip = true
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.backend_tg.arn
-    container_name   = "backend-service"
-    container_port   = var.backend_container_port
+    container_name   = "backend"
+    container_port   = var.backend_port
   }
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-backend-svc"
+    Name        = "${var.project_name}-${var.environment}-backend-service"
     Environment = var.environment
     Project     = var.project_name
     ManagedBy   = var.managed_by
