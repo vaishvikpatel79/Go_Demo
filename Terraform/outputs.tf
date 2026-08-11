@@ -10,12 +10,12 @@ output "ecs_cluster_name" {
 
 output "frontend_ecs_service_name" {
   description = "Name of the Frontend ECS Service"
-  value       = aws_ecs_service.frontend_service.name
+  value       = aws_ecs_service.frontend_ecs_service.name
 }
 
 output "backend_ecs_service_name" {
   description = "Name of the Backend ECS Service"
-  value       = aws_ecs_service.backend_service.name
+  value       = aws_ecs_service.backend_ecs_service.name
 }
 
 output "frontend_task_definition_arn" {
@@ -29,12 +29,12 @@ output "backend_task_definition_arn" {
 }
 
 output "frontend_ecr_repository_uri" {
-  description = "Amazon ECR Repository URI for the Frontend image"
+  description = "Amazon ECR Repository URI for the Frontend image (constructed)"
   value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["frontend-service"]}"
 }
 
 output "backend_ecr_repository_uri" {
-  description = "Amazon ECR Repository URI for the Backend image"
+  description = "Amazon ECR Repository URI for the Backend image (constructed)"
   value       = "${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.service_repositories["backend-service"]}"
 }
 
@@ -54,63 +54,62 @@ output "application_url" {
 }
 
 output "deployment_contract" {
-  description = "Canonical deployment contract for consumption by the deployment agent"
   value = {
     meta = {
       contract_version = "1.0"
-      cloud = "aws"
-      runtime = "ecs-fargate"
-      application_type = "Fullstack app"
-      environment = var.environment
-      region = var.region
-      deployment_type = "public"
+      cloud            = "aws"
+      runtime          = "ecs fargate"
+      application_type = "fullstack"
+      environment      = var.environment
+      region           = var.region
+      deployment_type  = "public"
     }
 
     compute = {
       cluster_name = aws_ecs_cluster.go_demo_ecs_cluster.name
       service_name = null
       service_names = {
-        "frontend-service" = aws_ecs_service.frontend_service.name
-        "backend-service"  = aws_ecs_service.backend_service.name
+        "frontend-service" = aws_ecs_service.frontend_ecs_service.name
+        "backend-service"  = aws_ecs_service.backend_ecs_service.name
       }
-      task_family = null
+      task_family   = null
       workload_name = null
     }
 
     network = {
-      vpc_id = aws_vpc.go_demo_vpc.id
-      subnet_ids = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
-      security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
-      ingress_id = aws_security_group.alb_sg.id
+      vpc_id             = aws_vpc.go_demo_vpc.id
+      subnet_ids         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+      security_group_ids = [aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id, aws_security_group.alb_sg.id]
+      ingress_id         = aws_security_group.alb_sg.id
     }
 
     routing = {
-      public_endpoint = "http://${aws_lb.application_lb.dns_name}"
-      internal_endpoint = null
-      custom_domain = null
+      public_endpoint      = "http://${aws_lb.application_lb.dns_name}"
+      internal_endpoint    = null
+      custom_domain        = null
       certificate_required = false
-      certificate_mode = null
+      certificate_mode     = null
     }
 
     data = {
       database_endpoint = null
-      cache_endpoint = null
+      cache_endpoint    = null
       object_store_name = null
     }
 
     security = {
       certificate_ref = null
-      secret_refs = null
+      secret_refs     = null
       role_arns = {
         ecs_task_execution_role = aws_iam_role.ecs_task_execution_role.arn
       }
     }
 
     health = {
-      frontend_path = var.frontend_health_path
-      backend_path = var.backend_health_path
+      frontend_path  = "/"
+      backend_path   = "/health"
       readiness_path = null
-      liveness_path = null
+      liveness_path  = null
     }
   }
 }
