@@ -1,21 +1,21 @@
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"
-  value       = aws_lb.application_lb.dns_name
+  value       = aws_lb.go_demo_alb.dns_name
 }
 
 output "ecs_cluster_name" {
   description = "Name of the ECS Cluster"
-  value       = aws_ecs_cluster.go_demo_ecs_cluster.name
+  value       = aws_ecs_cluster.go_demo_cluster.name
 }
 
-output "frontend_ecs_service_name" {
+output "frontend_service_name" {
   description = "Name of the Frontend ECS Service"
-  value       = aws_ecs_service.frontend_ecs_service.name
+  value       = aws_ecs_service.frontend_service.name
 }
 
-output "backend_ecs_service_name" {
+output "backend_service_name" {
   description = "Name of the Backend ECS Service"
-  value       = aws_ecs_service.backend_ecs_service.name
+  value       = aws_ecs_service.backend_service.name
 }
 
 output "frontend_task_definition_arn" {
@@ -49,8 +49,8 @@ output "backend_target_group_arn" {
 }
 
 output "application_url" {
-  description = "Public URL of the deployed application (http://<ALB-DNS>)"
-  value       = "http://${aws_lb.application_lb.dns_name}"
+  description = "Public URL of the deployed application"
+  value       = "http://${aws_lb.go_demo_alb.dns_name}"
 }
 
 output "deployment_contract" {
@@ -58,19 +58,19 @@ output "deployment_contract" {
     meta = {
       contract_version = "1.0"
       cloud            = "aws"
-      runtime          = "ecs fargate"
-      application_type = "fullstack"
+      runtime          = "ecs"
+      application_type = "Fullstack app"
       environment      = var.environment
       region           = var.region
-      deployment_type  = "public"
+      deployment_type  = "container"
     }
 
     compute = {
-      cluster_name = aws_ecs_cluster.go_demo_ecs_cluster.name
-      service_name = null
+      cluster_name  = aws_ecs_cluster.go_demo_cluster.name
+      service_name  = null
       service_names = {
-        "frontend-service" = aws_ecs_service.frontend_ecs_service.name
-        "backend-service"  = aws_ecs_service.backend_ecs_service.name
+        "frontend-service" = aws_ecs_service.frontend_service.name
+        "backend-service"  = aws_ecs_service.backend_service.name
       }
       task_family   = null
       workload_name = null
@@ -79,12 +79,12 @@ output "deployment_contract" {
     network = {
       vpc_id             = aws_vpc.go_demo_vpc.id
       subnet_ids         = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
-      security_group_ids = [aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id, aws_security_group.alb_sg.id]
-      ingress_id         = aws_security_group.alb_sg.id
+      security_group_ids = [aws_security_group.alb_sg.id, aws_security_group.frontend_service_sg.id, aws_security_group.backend_service_sg.id]
+      ingress_id         = aws_lb.go_demo_alb.arn
     }
 
     routing = {
-      public_endpoint      = "http://${aws_lb.application_lb.dns_name}"
+      public_endpoint      = "http://${aws_lb.go_demo_alb.dns_name}"
       internal_endpoint    = null
       custom_domain        = null
       certificate_required = false
@@ -92,15 +92,15 @@ output "deployment_contract" {
     }
 
     data = {
-      database_endpoint = null
-      cache_endpoint    = null
-      object_store_name = null
+      database_endpoint   = null
+      cache_endpoint      = null
+      object_store_name   = null
     }
 
     security = {
       certificate_ref = null
       secret_refs     = null
-      role_arns = {
+      role_arns       = {
         ecs_task_execution_role = aws_iam_role.ecs_task_execution_role.arn
       }
     }
